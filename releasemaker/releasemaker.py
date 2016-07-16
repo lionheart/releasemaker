@@ -59,12 +59,13 @@ class ReleaseMaker(object):
 
         response = requests.post(self.release_url, data=json.dumps(release_data), headers=self.HEADERS)
 
-        upload_url = uritemplate.expand(response.json()['upload_url'], {'name': os.path.basename(filename)})
-        headers = self.HEADERS
-        headers['Content-Type'] = "application/zip"
+        if filename is not None:
+            upload_url = uritemplate.expand(response.json()['upload_url'], {'name': os.path.basename(filename)})
+            headers = self.HEADERS
+            headers['Content-Type'] = "application/zip"
 
-        with open(filename, 'rb') as f:
-            response = requests.post(upload_url, data=f.read(), headers=self.HEADERS)
+            with open(filename, 'rb') as f:
+                response = requests.post(upload_url, data=f.read(), headers=self.HEADERS)
 
         if response.status_code == 201:
             return 0

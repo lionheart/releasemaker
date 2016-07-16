@@ -41,7 +41,7 @@ if __name__ == "__main__":
     if api_key == "":
         api_key = args.api_key
 
-    if None in [api_key, args.organization, args.repository, args.start_commit, args.filename]:
+    if None in [api_key, args.organization, args.repository, args.start_commit]:
         parser.print_help()
     else:
         release_maker = ReleaseMaker(api_key, args.organization, args.repository)
