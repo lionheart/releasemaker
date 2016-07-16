@@ -1,0 +1,2 @@
+gitpython==2.0.6
+uritemplate==0.6
