@@ -68,7 +68,7 @@ class ReleaseMaker(object):
                 response = requests.post(upload_url, data=f.read(), headers=self.HEADERS)
 
         if response.status_code == 201:
-            return 0
+            return True
         else:
-            return 1
+            return False
 

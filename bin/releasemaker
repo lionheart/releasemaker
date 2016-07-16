@@ -52,5 +52,9 @@ if __name__ == "__main__":
         except subprocess.CalledProcessError:
             parser.error("This tool must be run in a directory containing an Xcode project file.")
         else:
-            release_maker.create(version, bundle, args.start_commit, args.filename)
+            success = release_maker.create(version, bundle, args.start_commit, args.filename)
+            if success:
+                parser.exit(message="Release created.")
+            else:
+                parser.exit(message="Release was not created.")
 
