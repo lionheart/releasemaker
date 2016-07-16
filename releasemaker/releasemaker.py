@@ -47,9 +47,11 @@ class ReleaseMaker(object):
 
         issue_re = re.compile("#\d*", re.MULTILINE)
         list_re = re.compile("^- .*", re.MULTILINE)
+
         for commit in repo.iter_commits("HEAD...{}".format(last_commit)):
             for item in issue_re.finditer(commit.message):
-                print item.group(0)
+                # TODO
+                pass
 
             for item in list_re.finditer(commit.message):
                 tasks_completed.append(item.group(0))
@@ -57,7 +59,13 @@ class ReleaseMaker(object):
         tasks = "\n".join(tasks_completed)
         release_data['body'] = tasks
 
-        response = requests.post(self.release_url, data=json.dumps(release_data), headers=self.HEADERS)
+        release_response = requests.post(self.release_url, data=json.dumps(release_data), headers=self.HEADERS)
+        errors = release_response.json().get('errors', [])
+        if len(errors) > 0:
+            for error in errors:
+                print error
+
+            return False
 
         for path in paths:
             filename = os.path.basename(path)
