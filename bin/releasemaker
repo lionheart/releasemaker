@@ -10,7 +10,7 @@ from releasemaker.releasemaker import ReleaseMaker
 
 call_command = lambda args: subprocess.check_output(args.split()).strip()
 
-def commit_sha(value):
+def ref_checker(value):
     repo = git.Repo()
     try:
         repo.commit(value)
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("--organization", required=True)
     parser.add_argument("--repository", required=True)
     parser.add_argument("--api-key", help="Your GitHub API token. Defaults to value on OS X keychain.", default=api_key_default)
-    parser.add_argument("--start-commit", help="The first commit to draw release notes from.", required=True, type=commit_sha)
+    parser.add_argument("--since-ref", help="The first ref to start drawing release notes from.", required=True, type=ref_checker)
     parser.add_argument("paths", metavar='PATH', type=str, nargs='*', help="An optional file to upload along with the release.")
 
     api_key = call_command("security find-internet-password -s api.github.com -w")
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     if api_key == "":
         api_key = args.api_key
 
-    if None in [api_key, args.organization, args.repository, args.start_commit]:
+    if None in [api_key, args.organization, args.repository, args.since_ref]:
         parser.print_help()
     else:
         release_maker = ReleaseMaker(api_key, args.organization, args.repository)
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         except subprocess.CalledProcessError:
             parser.error("This tool must be run in a directory containing an Xcode project file.")
         else:
-            success = release_maker.create(version, bundle, args.start_commit, args.paths)
+            success = release_maker.create(version, bundle, args.since_ref, args.paths)
             if success:
                 parser.exit(message="Release created.")
             else:

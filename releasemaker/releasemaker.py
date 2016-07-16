@@ -34,7 +34,7 @@ class ReleaseMaker(object):
     def release_url(self):
         return github_url("repos", self.organization, self.repository, "releases")
 
-    def create(self, version, bundle, last_commit, paths):
+    def create(self, version, bundle, since_ref, paths):
         release_data = {
             'tag_name': "v{}-alpha+{}".format(version, bundle),
             'name': "{} ({})".format(version, bundle),
@@ -48,7 +48,7 @@ class ReleaseMaker(object):
         issue_re = re.compile("#\d*", re.MULTILINE)
         list_re = re.compile("^- .*", re.MULTILINE)
 
-        for commit in repo.iter_commits("HEAD...{}".format(last_commit)):
+        for commit in repo.iter_commits("HEAD...{}".format(since_ref)):
             for item in issue_re.finditer(commit.message):
                 # TODO
                 pass
