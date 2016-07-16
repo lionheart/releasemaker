@@ -46,8 +46,11 @@ if __name__ == "__main__":
     else:
         release_maker = ReleaseMaker(api_key, args.organization, args.repository)
 
-        version = call_command("agvtool what-marketing-version -terse1")
-        bundle = call_command("agvtool what-version -terse")
-
-        release_maker.create(version, bundle, args.start_commit, args.filename)
+        try:
+            version = call_command("agvtool what-marketing-version -terse1")
+            bundle = call_command("agvtool what-version -terse")
+        except subprocess.CalledProcessError:
+            parser.error("This tool must be run in a directory containing an Xcode project file.")
+        else:
+            release_maker.create(version, bundle, args.start_commit, args.filename)
 
