@@ -11,7 +11,7 @@ metadata = {}
 execfile("releasemaker/metadata.py", metadata)
 
 setup(
-    name='xcode_releasemaker',
+    name='releasemaker',
     version=metadata['__version__'],
     license=metadata['__license__'],
     description="Build tool to create releases in GitHub.",
