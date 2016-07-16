@@ -34,7 +34,7 @@ class ReleaseMaker(object):
     def release_url(self):
         return github_url("repos", self.organization, self.repository, "releases")
 
-    def create(self, version, bundle, last_commit, filename):
+    def create(self, version, bundle, last_commit, paths):
         release_data = {
             'tag_name': "v{}-alpha+{}".format(version, bundle),
             'name': "{} ({})".format(version, bundle),
@@ -59,12 +59,13 @@ class ReleaseMaker(object):
 
         response = requests.post(self.release_url, data=json.dumps(release_data), headers=self.HEADERS)
 
-        if filename is not None:
-            upload_url = uritemplate.expand(response.json()['upload_url'], {'name': os.path.basename(filename)})
+        for path in paths:
+            filename = os.path.basename(path)
+            upload_url = uritemplate.expand(response.json()['upload_url'], {'name': filename})
             headers = self.HEADERS
             headers['Content-Type'] = "application/zip"
 
-            with open(filename, 'rb') as f:
+            with open(path, 'rb') as f:
                 response = requests.post(upload_url, data=f.read(), headers=self.HEADERS)
 
         if response.status_code == 201:

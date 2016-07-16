@@ -23,17 +23,14 @@ def commit_sha(value):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='releasemaker')
-    subparsers = parser.add_subparsers()
 
     api_key_default = call_command("security find-internet-password -s api.github.com -w")
 
-    parser_create = subparsers.add_parser("create", help="Create a release")
-    parser_create.set_defaults(command="create")
-    parser_create.add_argument("--organization", required=True)
-    parser_create.add_argument("--repository", required=True)
-    parser_create.add_argument("--api-key", help="Your GitHub API token. Defaults to value on OS X keychain.", default=api_key_default)
-    parser_create.add_argument("--start-commit", help="The first commit to draw release notes from.", required=True, type=commit_sha)
-    parser_create.add_argument("--filename", help="An optional file to upload along with the release.")
+    parser.add_argument("--organization", required=True)
+    parser.add_argument("--repository", required=True)
+    parser.add_argument("--api-key", help="Your GitHub API token. Defaults to value on OS X keychain.", default=api_key_default)
+    parser.add_argument("--start-commit", help="The first commit to draw release notes from.", required=True, type=commit_sha)
+    parser.add_argument("paths", metavar='PATH', type=str, nargs='*', help="An optional file to upload along with the release.")
 
     api_key = call_command("security find-internet-password -s api.github.com -w")
 
@@ -52,7 +49,7 @@ if __name__ == "__main__":
         except subprocess.CalledProcessError:
             parser.error("This tool must be run in a directory containing an Xcode project file.")
         else:
-            success = release_maker.create(version, bundle, args.start_commit, args.filename)
+            success = release_maker.create(version, bundle, args.start_commit, args.paths)
             if success:
                 parser.exit(message="Release created.")
             else:
