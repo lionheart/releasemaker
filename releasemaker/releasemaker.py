@@ -8,6 +8,7 @@ import json
 import pprint
 import re
 import subprocess
+import operator
 
 import git
 import uritemplate
@@ -34,19 +35,27 @@ class ReleaseMaker(object):
     def release_url(self):
         return github_url("repos", self.organization, self.repository, "releases")
 
-    def create(self, version, bundle, since_ref, paths):
+    def create(self, version, bundle, since_ref=None, paths=[]):
         release_data = {
             'tag_name': "v{}-alpha+{}".format(version, bundle),
             'name': "{} ({})".format(version, bundle),
             'prerelease': True
         }
 
-        repo = git.Repo(".")
+        repo = git.Repo()
 
         tasks_completed = []
 
         issue_re = re.compile("#\d*", re.MULTILINE)
         list_re = re.compile("^- .*", re.MULTILINE)
+
+        if since_ref is None:
+            tags = sorted(repo.tags, key=operator.attrgetter("commit.committed_date"), reverse=True)
+            if len(tags) > 0:
+                since_ref = tags[0].commit.hexsha
+            else:
+                # From http://stackoverflow.com/a/1007545
+                since_ref = repo.git.rev_list("--max-parents=0", "HEAD")
 
         for commit in repo.iter_commits("HEAD...{}".format(since_ref)):
             for item in issue_re.finditer(commit.message):
