@@ -45,8 +45,11 @@ class ReleaseMaker(object):
         repo = git.Repo()
 
         tasks_completed = []
+        closed_issues = set()
+        issues = set()
 
-        issue_re = re.compile("#\d*", re.MULTILINE)
+        issue_close_re = re.compile("(close[ds]?|fix|fixe[ds])? (#\d+)", re.MULTILINE)
+        issue_ref_re = re.compile("(#\d+)", re.MULTILINE)
         list_re = re.compile("^- .*", re.MULTILINE)
 
         if since_ref is None:
@@ -58,15 +61,36 @@ class ReleaseMaker(object):
                 since_ref = repo.git.rev_list("--max-parents=0", "HEAD")
 
         for commit in repo.iter_commits("HEAD...{}".format(since_ref)):
-            for item in issue_re.finditer(commit.message):
-                # TODO
-                pass
+            for item in issue_close_re.finditer(commit.message):
+                issue = item.group(2)
+                closed_issues.add(issue)
+                if issue in issues:
+                    issues.remove(issue)
+
+            for item in issue_ref_re.finditer(commit.message):
+                issue = item.group(0)
+                if issue not in closed_issues:
+                    issues.add(issue)
 
             for item in list_re.finditer(commit.message):
                 tasks_completed.append(item.group(0))
 
-        tasks = "\n".join(tasks_completed)
-        release_data['body'] = tasks
+        closed_issues_list = u", ".join(sorted(closed_issues))
+        issues_list = u", ".join(sorted(issues))
+
+        body = u""
+
+        sections = []
+        if len(closed_issues) > 0:
+            sections.append(u"### Closed Issues ({})\n{}".format(len(closed_issues), closed_issues_list))
+
+        if len(issues) > 0:
+            sections.append(u"### Issues Worked On ({})\n{}".format(len(issues), issues_list))
+
+        if len(tasks_completed) > 0:
+            sections.append(u"### Completed Tasks ({})\n{}".format(len(tasks_completed), "\n".join(tasks_completed)))
+
+        release_data['body'] = "\n\n".join(sections)
 
         release_response = requests.post(self.release_url, data=json.dumps(release_data), headers=self.HEADERS)
         errors = release_response.json().get('errors', [])
