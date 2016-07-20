@@ -51,6 +51,7 @@ class ReleaseMaker(object):
         issue_close_re = re.compile("(close[ds]?|fix|fixe[ds])? (#\d+)", re.MULTILINE)
         issue_ref_re = re.compile("(#\d+)", re.MULTILINE)
         list_re = re.compile("^- .*", re.MULTILINE)
+        alternate_list_re = re.compile("^[^#]*$", re.MULTILINE)
 
         if since_ref is None:
             tags = sorted(repo.tags, key=operator.attrgetter("commit.committed_date"), reverse=True)
@@ -73,6 +74,9 @@ class ReleaseMaker(object):
                     issues.add(issue)
 
             for item in list_re.finditer(commit.message):
+                tasks_completed.append(item.group(0))
+
+            for item in alternate_list_re.finditer(commit.message):
                 tasks_completed.append(item.group(0))
 
         closed_issues_list = u", ".join(sorted(closed_issues))
