@@ -30,16 +30,19 @@ if __name__ == "__main__":
 
       security add-internet-password -a $USERNAME -D "Personal Access Token" -r http -s api.github.com -w $TOKEN
 
-  To restrict usage to within Xcode:
+  To restrict usage to within Xcode (e.g., in a build script):
 
       security add-internet-password -a $USERNAME -D "Personal Access Token" -r http -s api.github.com -w $TOKEN -T /Applications/Xcode.app
 """)
 
     api_key_default = call_command("security find-internet-password -s api.github.com -w")
 
-    parser.add_argument("--organization", required=True)
-    parser.add_argument("--repository", required=True)
-    parser.add_argument("--api-key", help="Your GitHub API token. If not provided, defaults to value stored on OS X keychain.", default=api_key_default)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--api-key", help="Your GitHub API token. If not provided, defaults to value stored on OS X keychain.", default=api_key_default)
+    group.add_argument("--dry-run", help="Print the changelog to standard output.", type=bool, default=False)
+
+    parser.add_argument("--organization", "-o", required=True)
+    parser.add_argument("--repository", "-r", required=True)
     parser.add_argument("--since-ref", help="The first ref to start pulling notes from. If omitted, releasemaker will iterate through commits until it finds another tag or the root commit, whichever comes first.", type=ref_checker)
     parser.add_argument("paths", metavar='PATH', type=str, nargs='*', help="An optional file to upload along with the release.")
 
@@ -60,9 +63,9 @@ if __name__ == "__main__":
         except subprocess.CalledProcessError:
             parser.error("This tool must be run in a directory containing an Xcode project file.")
         else:
-            success = release_maker.create(version, bundle, args.since_ref, args.paths)
+            success = release_maker.create(version, bundle, args.since_ref, args.paths, args.dry_run)
             if success:
-                parser.exit(message="Release created.")
+                parser.exit()
             else:
                 parser.exit(message="Release was not created.")
 

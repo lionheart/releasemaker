@@ -35,7 +35,7 @@ class ReleaseMaker(object):
     def release_url(self):
         return github_url("repos", self.organization, self.repository, "releases")
 
-    def create(self, version, bundle, since_ref=None, paths=[]):
+    def create(self, version, bundle, since_ref=None, paths=[], dry_run=False):
         release_data = {
             'tag_name': "v{}-alpha+{}".format(version, bundle),
             'name': "{} ({})".format(version, bundle),
@@ -51,7 +51,7 @@ class ReleaseMaker(object):
         issue_close_re = re.compile("(close[ds]?|fix|fixe[ds])? (#\d+)", re.MULTILINE)
         issue_ref_re = re.compile("(#\d+)", re.MULTILINE)
         list_re = re.compile("^- .*", re.MULTILINE)
-        alternate_list_re = re.compile("^[^#]*$", re.MULTILINE)
+        alternate_list_re = re.compile("^[^#\n\r]+$", re.MULTILINE)
 
         if since_ref is None:
             tags = sorted(repo.tags, key=operator.attrgetter("commit.committed_date"), reverse=True)
@@ -77,7 +77,11 @@ class ReleaseMaker(object):
                 tasks_completed.append(item.group(0))
 
             for item in alternate_list_re.finditer(commit.message):
-                tasks_completed.append(item.group(0))
+                if "bump bundle version" in commit.message:
+                    break
+
+                if len(commit.message.split("\n")) <= 2:
+                    tasks_completed.append("- {}".format(item.group(0)).strip())
 
         closed_issues_list = u", ".join(sorted(closed_issues))
         issues_list = u", ".join(sorted(issues))
@@ -86,35 +90,40 @@ class ReleaseMaker(object):
 
         sections = []
         if len(closed_issues) > 0:
-            sections.append(u"### Closed Issues ({})\n{}".format(len(closed_issues), closed_issues_list))
+            sections.append(u"### Closed Issues ({})\n\n{}".format(len(closed_issues), closed_issues_list))
 
         if len(issues) > 0:
-            sections.append(u"### Issues Worked On ({})\n{}".format(len(issues), issues_list))
+            sections.append(u"### Issues Worked On ({})\n\n{}".format(len(issues), issues_list))
 
         if len(tasks_completed) > 0:
-            sections.append(u"### Completed Tasks ({})\n{}".format(len(tasks_completed), "\n".join(tasks_completed)))
+            sections.append(u"### Completed Tasks ({})\n\n{}".format(len(tasks_completed), "\n".join(tasks_completed)))
 
-        release_data['body'] = "\n\n".join(sections)
-
-        release_response = requests.post(self.release_url, data=json.dumps(release_data), headers=self.HEADERS)
-        errors = release_response.json().get('errors', [])
-        if len(errors) > 0:
-            for error in errors:
-                print error
-
-            return False
-
-        for path in paths:
-            filename = os.path.basename(path)
-            upload_url = uritemplate.expand(release_response.json()['upload_url'], {'name': filename})
-            headers = self.HEADERS
-            headers['Content-Type'] = "application/zip"
-
-            with open(path, 'rb') as f:
-                requests.post(upload_url, data=f.read(), headers=self.HEADERS)
-
-        if release_response.status_code == 201:
+        body = "\n\n".join(sections)
+        if dry_run:
+            print body
             return True
         else:
-            return False
+            release_data['body'] = "\n\n".join(sections)
+
+            release_response = requests.post(self.release_url, data=json.dumps(release_data), headers=self.HEADERS)
+            errors = release_response.json().get('errors', [])
+            if len(errors) > 0:
+                for error in errors:
+                    print error
+
+                return False
+
+            for path in paths:
+                filename = os.path.basename(path)
+                upload_url = uritemplate.expand(release_response.json()['upload_url'], {'name': filename})
+                headers = self.HEADERS
+                headers['Content-Type'] = "application/zip"
+
+                with open(path, 'rb') as f:
+                    requests.post(upload_url, data=f.read(), headers=self.HEADERS)
+
+            if release_response.status_code == 201:
+                return True
+            else:
+                return False
 
