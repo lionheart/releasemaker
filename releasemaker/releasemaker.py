@@ -35,12 +35,18 @@ class ReleaseMaker(object):
     def release_url(self):
         return github_url("repos", self.organization, self.repository, "releases")
 
-    def create(self, version, bundle, since_ref=None, paths=[], dry_run=False):
-        release_data = {
-            'tag_name': "v{}-alpha+{}".format(version, bundle),
-            'name': "{} ({})".format(version, bundle),
-            'prerelease': True
-        }
+    def create(self, major_version, prerelease=True, bundle=None, since_ref=None, paths=[], dry_run=False):
+        if bundle is None:
+            release_data = {
+                'tag_name': "v{}".format(major_version, bundle),
+            }
+        else:
+            release_data = {
+                'tag_name': "v{}-alpha+{}".format(major_version, bundle),
+                'name': "{} ({})".format(major_version, bundle),
+            }
+
+        release_data['prerelease'] = prerelease
 
         repo = git.Repo()
 
