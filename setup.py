@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
 import os
+import runpy
 
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
 
-metadata = {}
-execfile("releasemaker/metadata.py", metadata)
+metadata_filename = "releasemaker/metadata.py"
+metadata = runpy.run_path(metadata_filename)
 
 setup(
     name='releasemaker',
